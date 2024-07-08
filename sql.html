@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>激活页面</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 300px;
+        }
+        h1 {
+            color: #333;
+        }
+        input[type="text"] {
+            width: 80%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #result {
+            margin-top: 20px;
+        }
+        .error {
+            color: red;
+        }
+        .success {
+            color: green;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fingerprintjs2/2.1.0/fingerprint2.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>请输入激活码</h1>
+        <input type="text" id="activationCode" placeholder="输入激活码">
+        <button onclick="activate()">激活</button>
+        <p id="result"></p>
+    </div>
+
+    <script>
+        function activate() {
+            const code = document.getElementById('activationCode').value;
+            const result = document.getElementById('result');
+
+    // 检查输入的激活码是否是专属激活码
+    if (code === '057688') { // 替换为你设定的专属激活码
+        window.location.href = '清除.html'; // 跳转到专属的HTML文件
+        return;
+    }
+
+            if (!code) {
+                result.textContent = "请输入激活码。";
+                result.className = 'error';
+                return;
+            }
+
+            // 使用最新版本的 fingerprintjs2 获取设备信息
+            Fingerprint2.get(function(components) {
+                const values = components.map(function(component) { return component.value });
+                const deviceInfo = Fingerprint2.x64hash128(values.join(''), 31);
+
+                // 发送激活请求到后端
+                fetch('http://116.62.195.7:5000/activate', { // 修改为 Flask 应用实际地址和端口
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ code: code, device_info: deviceInfo })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        result.textContent = data.message;
+                        result.className = 'success';
+                        setTimeout(() => {
+                            window.location.href = '课.html'; // 成功后跳转到 success.html
+                        }, 200); // 2秒后跳转
+                    } else {
+                        result.textContent = data.message;
+                        result.className = 'error';
+                    }
+                })
+                .catch(error => {
+                    result.textContent = '错误: ' + error.message;
+                    result.className = 'error';
+                });
+            });
+        }
+    </script>
+</body>
+</html>

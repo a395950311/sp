@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>清除激活码使用记录</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        h1 {
+            color: #333;
+        }
+        label, select, input, button, p {
+            margin: 10px 0;
+        }
+        input, select {
+            padding: 10px;
+            width: 300px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        p {
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>清除激活码使用记录</h1>
+    <label for="activationCodes">激活码：</label>
+    <select id="activationCodes" onchange="fillInput()">
+        <option value="">请选择一个激活码</option>
+    </select>
+    <label for="activationCode">激活码：</label>
+    <input type="text" id="activationCode" placeholder="输入激活码">
+    <button onclick="clearUsage()">清除使用记录</button>
+    <p id="result"></p>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            fetch('http://116.62.195.7:5000/get_activation_codes')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    let codes_info = data.codes_info;
+
+                    // 排序逻辑：先按使用记录数量降序，再按ID升序
+                    codes_info.sort((a, b) => {
+                        if (a.usage_count === b.usage_count) {
+                            return a.id - b.id;
+                        }
+                        return b.usage_count - a.usage_count;
+                    });
+
+                    const select = document.getElementById('activationCodes');
+                    codes_info.forEach(code_info => {
+                        const option = document.createElement('option');
+                        option.value = code_info.code;
+                        option.textContent = `ID: ${code_info.id} - ${code_info.code}：${code_info.usage_count}`;
+                        select.appendChild(option);
+                    });
+                } else {
+                    alert('无法获取激活码数据：' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('错误:', error);
+                alert('发生错误，请稍后重试。');
+            });
+        });
+
+        function fillInput() {
+            const select = document.getElementById('activationCodes');
+            const input = document.getElementById('activationCode');
+            input.value = select.value;
+        }
+
+        function clearUsage() {
+            const code = document.getElementById('activationCode').value;
+
+            fetch('http://116.62.195.7:5000/clear_usage', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ code: code })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const result = document.getElementById('result');
+                if (data.success) {
+                    result.textContent = '使用记录清除成功。';
+                    result.style.color = 'green';
+                } else {
+                    result.textContent = '清除使用记录失败：' + data.message;
+                    result.style.color = 'red';
+                }
+            })
+            .catch(error => {
+                console.error('错误:', error);
+                const result = document.getElementById('result');
+                result.textContent = '发生错误，请稍后重试。';
+                result.style.color = 'red';
+            });
+        }
+    </script>
+</body>
+</html>
